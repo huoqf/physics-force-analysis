@@ -1,0 +1,1 @@
+$env:PATH="D:\node-v24;"+$env:PATH; npm run dev
