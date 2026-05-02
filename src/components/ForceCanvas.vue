@@ -20,7 +20,7 @@ let animationFrameId = null;
 
 // 物理参数常量
 const CANVAS_WIDTH = 600;
-const CANVAS_HEIGHT = 400;
+const CANVAS_HEIGHT = 500;  // 从 400 增加到 500
 const BLOCK_WIDTH = 80;
 const BLOCK_HEIGHT = 50;
 const ARROW_LENGTH = 100;
@@ -42,7 +42,7 @@ const handleCanvasClick = (event) => {
   
   const planeWidth = 500;
   const centerX = CANVAS_WIDTH / 2;
-  const centerY = CANVAS_HEIGHT / 2 + 50;
+  const centerY = CANVAS_HEIGHT / 2 + 80;// 从 +50 改为 +80，使斜面更居中
   const planeX1 = centerX - planeWidth / 2;
   const planeY1 = centerY;
   
@@ -228,7 +228,7 @@ const drawForceArrow = (ctx, x, y, force, angleRad) => {
 .canvas-container {
   position: relative;
   width: 600px;
-  height: 400px;
+  height: 500px;/* 同步增加高度 */
   background: #ffffff;
   border-radius: 24px;
   box-shadow: inset 0 0 40px rgba(0, 0, 0, 0.02), 0 10px 30px rgba(0, 0, 0, 0.05);
