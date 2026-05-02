@@ -37,6 +37,16 @@ const updateStringParam = (key, value, triggerReload = false) => {
         <button :class="{ active: params.category === 'em' }" @click="setCategory('em', 'particle')">电磁场</button>
       </div>
     </div>
+  <!-- 在基础斜面模型分类后添加 -->
+<div class="section" v-if="params.category === 'basic'">
+  <h3>研究对象</h3>
+  <div class="model-buttons row">
+    <button :class="{ active: params.targetObject === 'block' }" 
+            @click="updateStringParam('targetObject', 'block')">滑块</button>
+    <button :class="{ active: params.targetObject === 'incline' }" 
+            @click="updateStringParam('targetObject', 'incline')">斜面</button>
+  </div>
+</div>
 
     <!-- 连接体子分类 -->
     <div class="section" v-if="params.category === 'connected'">

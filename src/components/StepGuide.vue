@@ -81,7 +81,8 @@ const handleExternalAction = (actionType, targetId) => {
 };
 
 defineExpose({
-  handleExternalAction
+  handleExternalAction,
+  currentStepIndex
 });
 </script>
 

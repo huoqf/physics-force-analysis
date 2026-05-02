@@ -57,6 +57,33 @@ const handleCanvasClick = (event) => {
   const localX = dx * Math.cos(angleRad) - dy * Math.sin(angleRad);
   const localY = dx * Math.sin(angleRad) + dy * Math.cos(angleRad);
   
+  // 新增：斜面点击检测 (判断点击是否在斜面三角形内)
+  const planeX2 = centerX + planeWidth / 2;
+  const planeY2 = centerY - Math.tan(angleRad) * planeWidth;
+  
+  // 使用重心坐标法判断点是否在三角形内
+  const sign = (p1, p2, p3) => {
+    return (p1.x - p3.x) * (p2.y - p3.y) - (p2.x - p3.x) * (p1.y - p3.y);
+  };
+  
+  const isInTriangle = (pt, v1, v2, v3) => {
+    const d1 = sign(pt, v1, v2);
+    const d2 = sign(pt, v2, v3);
+    const d3 = sign(pt, v3, v1);
+    const hasNeg = (d1 < 0) || (d2 < 0) || (d3 < 0);
+    const hasPos = (d1 > 0) || (d2 > 0) || (d3 > 0);
+    return !(hasNeg && hasPos);
+  };
+  
+  const clickPt = { x: clickX, y: clickY };
+  const v1 = { x: planeX1, y: planeY1 };
+  const v2 = { x: planeX2, y: planeY1 };
+  const v3 = { x: planeX2, y: planeY2 };
+  
+  if (isInTriangle(clickPt, v1, v2, v3)) {
+    emit('object-clicked', 'incline');
+  }
+
   // 判断点击坐标是否在物块的边界内
   if (localX >= -BLOCK_WIDTH / 2 && localX <= BLOCK_WIDTH / 2 &&
       localY >= -BLOCK_HEIGHT && localY <= 0) {
@@ -135,27 +162,99 @@ const draw = () => {
   ctx.shadowBlur = 10;
   ctx.shadowOffsetY = 5;
 
+  // 根据运动状态选择颜色
+  let blockColor = '#6366f1'; // 默认静止 (Indigo)
+  let strokeColor = '#4338ca';
+  
+  if (props.scenario.motion) {
+    if (props.scenario.motion.direction === 'down-incline') {
+      blockColor = '#0ea5e9'; // 下滑 (Sky Blue)
+      strokeColor = '#0369a1';
+    } else if (props.scenario.motion.direction === 'up-incline') {
+      blockColor = '#f59e0b'; // 上滑 (Amber)
+      strokeColor = '#b45309';
+    }
+  }
+
   // 物块主体
-  ctx.fillStyle = '#6366f1';
+  ctx.fillStyle = blockColor;
   ctx.fillRect(-BLOCK_WIDTH / 2, -BLOCK_HEIGHT, BLOCK_WIDTH, BLOCK_HEIGHT);
   
   // 物块轮廓
-  ctx.strokeStyle = '#4338ca';
+  ctx.strokeStyle = strokeColor;
   ctx.lineWidth = 2;
   ctx.strokeRect(-BLOCK_WIDTH / 2, -BLOCK_HEIGHT, BLOCK_WIDTH, BLOCK_HEIGHT);
   
   ctx.restore();
 
   // 3. 绘制受力箭头
-  // 所有力的作用点设为物块中心
-  const originX = blockX - (BLOCK_HEIGHT / 2) * Math.sin(angleRad);
-  const originY = blockY - (BLOCK_HEIGHT / 2) * Math.cos(angleRad);
+  let originX, originY;
+  if (props.scenario.targetObject && props.scenario.targetObject.id === 'incline') {
+    originX = centerX;
+    originY = centerY - (Math.tan(angleRad) * planeWidth) / 4; 
+  } else {
+    originX = blockX - (BLOCK_HEIGHT / 2) * Math.sin(angleRad);
+    originY = blockY - (BLOCK_HEIGHT / 2) * Math.cos(angleRad);
+  }
 
   props.scenario.correctForces.forEach(force => {
-    if (props.confirmedForces.includes(force.id)) {
+    if (props.confirmedForces.includes(force.id) || force.given) {
       drawForceArrow(ctx, originX, originY, force, angleRad);
     }
   });
+
+  // 4. 绘制运动状态指示 (如速度矢量 v)
+  if (props.scenario.motion) {
+    drawMotionIndicator(ctx, blockX, blockY, props.scenario.motion, angleRad);
+  }
+};
+
+/**
+ * 绘制运动状态指示器 (速度矢量等)
+ */
+const drawMotionIndicator = (ctx, x, y, motion, angleRad) => {
+  ctx.save();
+  ctx.translate(x, y);
+  
+  let dx = 0, dy = 0;
+  const length = 80; // 增长箭头
+  
+  if (motion.direction === 'down-incline') {
+    dx = -Math.cos(angleRad) * length;
+    dy = Math.sin(angleRad) * length;
+  } else if (motion.direction === 'up-incline') {
+    dx = Math.cos(angleRad) * length;
+    dy = -Math.sin(angleRad) * length;
+  }
+  
+  // 颜色与物块一致
+  const color = motion.direction === 'down-incline' ? '#0ea5e9' : '#f59e0b';
+
+  // 绘制速度矢量箭头 (实线，更粗)
+  ctx.beginPath();
+  ctx.moveTo(0, -BLOCK_HEIGHT / 2);
+  ctx.lineTo(dx, dy - BLOCK_HEIGHT / 2);
+  ctx.strokeStyle = color;
+  ctx.lineWidth = 3;
+  ctx.stroke();
+  
+  // 箭头头部
+  const headlen = 12;
+  const angle = Math.atan2(dy, dx);
+  ctx.beginPath();
+  ctx.moveTo(dx, dy - BLOCK_HEIGHT / 2);
+  ctx.lineTo(dx - headlen * Math.cos(angle - Math.PI / 6), dy - BLOCK_HEIGHT / 2 - headlen * Math.sin(angle - Math.PI / 6));
+  ctx.lineTo(dx - headlen * Math.cos(angle + Math.PI / 6), dy - BLOCK_HEIGHT / 2 - headlen * Math.sin(angle + Math.PI / 6));
+  ctx.closePath();
+  ctx.fillStyle = color;
+  ctx.fill();
+  
+  // 标注 'v'，加上背景小圆框提升辨识度
+  ctx.fillStyle = color;
+  ctx.font = 'bold italic 18px serif';
+  ctx.fillText(motion.label || 'v', dx + 10, dy - BLOCK_HEIGHT / 2 + 5);
+  
+  ctx.restore();
 };
 
 /**
@@ -165,7 +264,7 @@ const drawForceArrow = (ctx, x, y, force, angleRad) => {
   let dx = 0, dy = 0;
   let color = '#ef4444'; // 默认红色
 
-  if (force.id === 'gravity') {
+  if (force.id === 'gravity' || force.id === 'incline-gravity') {
     dx = 0;
     dy = ARROW_LENGTH;
     color = '#ef4444';
@@ -174,10 +273,38 @@ const drawForceArrow = (ctx, x, y, force, angleRad) => {
     dx = -Math.sin(angleRad) * ARROW_LENGTH;
     dy = -Math.cos(angleRad) * ARROW_LENGTH;
     color = '#3b82f6';
-  } else if (force.id === 'static-friction') {
-    // 沿斜面向上 (物块向右上升)
+  } else if (force.id === 'static-friction' || force.id === 'kinetic-friction-up' || force.id === 'max-static-friction') {
+    // 沿斜面向上
     dx = Math.cos(angleRad) * ARROW_LENGTH;
     dy = -Math.sin(angleRad) * ARROW_LENGTH;
+    // 最大静摩擦力用加深的绿色
+    color = force.id === 'max-static-friction' ? '#15803d' : '#22c55e';
+  } else if (force.id === 'kinetic-friction-down' || force.id === 'static-friction-down') {
+    // 沿斜面向下
+    dx = -Math.cos(angleRad) * ARROW_LENGTH;
+    dy = Math.sin(angleRad) * ARROW_LENGTH;
+    color = '#22c55e';
+  } else if (force.id === 'push-force') {
+    // 沿斜面向上，紫色
+    dx = Math.cos(angleRad) * ARROW_LENGTH * 1.2;
+    dy = -Math.sin(angleRad) * ARROW_LENGTH * 1.2;
+    color = '#a855f7';
+  } else if (force.id === 'horizontal-force') {
+    // 水平向右
+    dx = ARROW_LENGTH * 1.1;
+    dy = 0;
+    color = '#f97316'; // 橙色，区分于其他力
+  } else if (force.id === 'ground-normal') {
+    dx = 0;
+    dy = -ARROW_LENGTH;
+    color = '#3b82f6';
+  } else if (force.id === 'block-pressure') {
+    dx = Math.sin(angleRad) * ARROW_LENGTH * 0.8;
+    dy = Math.cos(angleRad) * ARROW_LENGTH * 0.8;
+    color = '#f59e0b';
+  } else if (force.id === 'block-friction') {
+    dx = -Math.cos(angleRad) * ARROW_LENGTH * 0.8;
+    dy = Math.sin(angleRad) * ARROW_LENGTH * 0.8;
     color = '#22c55e';
   }
 
