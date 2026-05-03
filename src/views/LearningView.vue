@@ -13,6 +13,12 @@ import { inclineMovablePlaneScenario } from '../data/scenarios/inclineMovablePla
 import { inclineBlockHorizontalForceScenario } from '../data/scenarios/inclineBlockHorizontalForce.js';
 import { inclineBlockCriticalDownScenario } from '../data/scenarios/inclineBlockCriticalDown.js';
 import { inclineBlockFRangeScenario } from '../data/scenarios/inclineBlockFRange.js';
+import { connectedLightRopeScenario } from '../data/scenarios/connectedLightRope.js';
+import { connectedHorizontalFrictionScenario } from '../data/scenarios/connectedHorizontalFriction.js';
+import { connectedVerticalScenario } from '../data/scenarios/connectedVertical.js';
+import { connectedDeskHangingScenario } from '../data/scenarios/connectedDeskHanging.js';
+import { connectedAtwoodScenario } from '../data/scenarios/connectedAtwood.js';
+import { connectedInclineHangingScenario } from '../data/scenarios/connectedInclineHanging.js';
 
 const scenariosMap = {
   'incline-block-static': inclineBlockScenario,
@@ -26,6 +32,63 @@ const scenariosMap = {
   'incline-block-horizontal-force': inclineBlockHorizontalForceScenario,
   'incline-block-critical-down': inclineBlockCriticalDownScenario,
   'incline-block-f-range': inclineBlockFRangeScenario,
+  'connected-light-rope-horizontal': connectedLightRopeScenario,
+  'connected-horizontal-friction': connectedHorizontalFrictionScenario,
+  'connected-vertical': connectedVerticalScenario,
+  'connected-desk-hanging': connectedDeskHangingScenario,
+  'connected-atwood': connectedAtwoodScenario,
+  'connected-incline-hanging': connectedInclineHangingScenario,
+};
+
+// 场景分组配置
+const scenarioGroups = [
+  {
+    id: 'basic-incline',
+    title: '基础斜面模型',
+    items: [
+      { id: 'incline-block-static', label: '静止物块' },
+      { id: 'incline-block-frictionless', label: '无摩擦下滑' },
+      { id: 'incline-block-friction-down', label: '有摩擦下滑' },
+      { id: 'incline-block-pushed', label: '受推力上滑' },
+      { id: 'incline-block-uniform', label: '匀速下滑' },
+      { id: 'incline-plane-static', label: '分析斜面' },
+    ]
+  },
+  {
+    id: 'advanced-incline',
+    title: '复杂斜面分析',
+    items: [
+      { id: 'incline-movable-block', label: '可动斜面(物块)' },
+      { id: 'incline-movable-plane', label: '可动斜面(斜面)' },
+      { id: 'incline-block-horizontal-force', label: '水平力静止' },
+      { id: 'incline-block-critical-down', label: '临界下滑' },
+      { id: 'incline-block-f-range', label: 'F 范围分析' },
+    ]
+  },
+  {
+    id: 'connected-body',
+    title: '连接体模型',
+    items: [
+      { id: 'connected-light-rope-horizontal', label: '水平无摩擦' },
+      { id: 'connected-horizontal-friction', label: '水平有摩擦' },
+      { id: 'connected-vertical', label: '竖直悬挂' },
+      { id: 'connected-desk-hanging', label: '桌面与悬挂' },
+      { id: 'connected-atwood', label: '阿特伍德机' },
+      { id: 'connected-incline-hanging', label: '斜面与悬挂' },
+    ]
+  }
+];
+
+// 控制分组展开/收起的状态
+const expandedGroups = ref(['basic-incline', 'advanced-incline', 'connected-body']);
+
+const toggleGroup = (groupId) => {
+  const index = expandedGroups.value.indexOf(groupId);
+  if (index > -1) {
+    expandedGroups.value.splice(index, 1);
+  } else {
+    expandedGroups.value.push(groupId);
+  }
 };
 
 // 当前加载的场景数据
@@ -134,23 +197,31 @@ onUnmounted(() => {
       <!-- 左侧导航：场景选择 -->
       <aside class="sidebar-section">
         <div class="sidebar-card">
-          <h3>斜面模型分类</h3>
-          <ul class="scenario-list">
-            <li class="group-label">基础模型</li>
-            <li :class="{ active: currentScenarioId === 'incline-block-static' }" @click="selectScenario('incline-block-static')">静止物块</li>
-            <li :class="{ active: currentScenarioId === 'incline-block-frictionless' }" @click="selectScenario('incline-block-frictionless')">无摩擦下滑</li>
-            <li :class="{ active: currentScenarioId === 'incline-block-friction-down' }" @click="selectScenario('incline-block-friction-down')">有摩擦下滑</li>
-            <li :class="{ active: currentScenarioId === 'incline-block-pushed' }" @click="selectScenario('incline-block-pushed')">受推力上滑</li>
-            <li :class="{ active: currentScenarioId === 'incline-block-uniform' }" @click="selectScenario('incline-block-uniform')">匀速下滑</li>
-            <li :class="{ active: currentScenarioId === 'incline-plane-static' }" @click="selectScenario('incline-plane-static')">分析斜面</li>
-            <li class="group-label">可动斜面</li>
-            <li :class="{ active: currentScenarioId === 'incline-movable-block' }" @click="selectScenario('incline-movable-block')">分析物块</li>
-            <li :class="{ active: currentScenarioId === 'incline-movable-plane' }" @click="selectScenario('incline-movable-plane')">分析斜面</li>
-            <li class="group-label">特殊受力</li>
-            <li :class="{ active: currentScenarioId === 'incline-block-horizontal-force' }" @click="selectScenario('incline-block-horizontal-force')">水平力静止</li>
-            <li :class="{ active: currentScenarioId === 'incline-block-critical-down' }" @click="selectScenario('incline-block-critical-down')">临界下滑</li>
-            <li :class="{ active: currentScenarioId === 'incline-block-f-range' }" @click="selectScenario('incline-block-f-range')">F 范围分析</li>
-          </ul>
+          <div class="sidebar-title-container">
+            <h3>模型场景选择</h3>
+          </div>
+          <div class="groups-container">
+            <div v-for="group in scenarioGroups" :key="group.id" class="scenario-group">
+              <div class="group-header" @click="toggleGroup(group.id)">
+                <span class="group-title">{{ group.title }}</span>
+                <span class="chevron" :class="{ rotated: expandedGroups.includes(group.id) }">
+                  <svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" stroke-width="2" fill="none"><path d="M9 18l6-6-6-6"></path></svg>
+                </span>
+              </div>
+              <Transition name="expand">
+                <ul v-if="expandedGroups.includes(group.id)" class="scenario-list">
+                  <li 
+                    v-for="item in group.items" 
+                    :key="item.id"
+                    :class="{ active: currentScenarioId === item.id }" 
+                    @click="selectScenario(item.id)"
+                  >
+                    {{ item.label }}
+                  </li>
+                </ul>
+              </Transition>
+            </div>
+          </div>
         </div>
       </aside>
 
@@ -261,38 +332,89 @@ onUnmounted(() => {
 .sidebar-card {
   background: white;
   border-radius: 24px;
-  padding: 20px;
+  padding: 16px;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.03);
   border: 1px solid #f1f5f9;
+  display: flex;
+  flex-direction: column;
+  max-height: calc(100vh - 120px);
 }
 
-.sidebar-card h3 {
-  margin-top: 0;
-  margin-bottom: 16px;
+.sidebar-title-container h3 {
+  margin: 8px 0 16px 8px;
   font-size: 16px;
+  color: #1e293b;
+  font-weight: 700;
+}
+
+.groups-container {
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+/* 滚动条美化 */
+.groups-container::-webkit-scrollbar {
+  width: 5px;
+}
+.groups-container::-webkit-scrollbar-thumb {
+  background: #e2e8f0;
+  border-radius: 10px;
+}
+
+.scenario-group {
+  margin-bottom: 8px;
+}
+
+.group-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 12px;
+  background: #f8fafc;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.2s;
+  user-select: none;
+}
+
+.group-header:hover {
+  background: #f1f5f9;
+}
+
+.group-title {
+  font-size: 13px;
+  font-weight: 600;
   color: #475569;
-  border-bottom: 1px solid #e2e8f0;
-  padding-bottom: 10px;
+}
+
+.chevron {
+  transition: transform 0.3s ease;
+  color: #94a3b8;
+}
+
+.chevron.rotated {
+  transform: rotate(90deg);
 }
 
 .scenario-list {
   list-style: none;
-  padding: 0;
+  padding: 4px 0 0 0;
   margin: 0;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 4px;
 }
 
 .scenario-list li {
-  padding: 12px 16px;
-  border-radius: 12px;
+  padding: 10px 16px;
+  border-radius: 10px;
   cursor: pointer;
-  color: #475569;
-  font-size: 14px;
+  color: #64748b;
+  font-size: 13px;
   font-weight: 500;
   transition: all 0.2s;
-  background: #f8fafc;
+  margin-left: 8px;
+  border: 1px solid transparent;
 }
 
 .scenario-list li:hover {
@@ -303,25 +425,19 @@ onUnmounted(() => {
 .scenario-list li.active {
   background: #4f46e5;
   color: white;
-  box-shadow: 0 4px 12px rgba(79, 70, 229, 0.2);
+  border-color: #4338ca;
+  box-shadow: 0 4px 12px rgba(79, 70, 229, 0.15);
 }
 
-.scenario-list li.group-label {
-  padding: 6px 8px 2px;
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: #94a3b8;
-  background: transparent;
-  cursor: default;
-  border-top: 1px solid #e2e8f0;
-  margin-top: 4px;
+/* 展开动画 */
+.expand-enter-active, .expand-leave-active {
+  transition: all 0.3s ease-out;
+  max-height: 500px;
+  overflow: hidden;
 }
-
-.scenario-list li.group-label:hover {
-  background: transparent;
-  color: #94a3b8;
+.expand-enter-from, .expand-leave-to {
+  max-height: 0;
+  opacity: 0;
 }
 
 .canvas-section {

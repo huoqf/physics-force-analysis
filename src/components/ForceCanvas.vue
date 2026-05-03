@@ -37,6 +37,71 @@ const handleCanvasClick = (event) => {
   const clickX = (event.clientX - rect.left) * scaleX;
   const clickY = (event.clientY - rect.top) * scaleY;
 
+  if (props.scenario.type === 'horizontal-connected') {
+    const centerY = CANVAS_HEIGHT / 2 + 50;
+    const blockB_X = CANVAS_WIDTH / 2 + 80;
+    const blockB_Y = centerY;
+    if (clickX >= blockB_X - BLOCK_WIDTH / 2 && clickX <= blockB_X + BLOCK_WIDTH / 2 &&
+        clickY >= blockB_Y - BLOCK_HEIGHT && clickY <= blockB_Y) {
+      emit('object-clicked', 'blockB');
+    }
+    return;
+  }
+
+  if (props.scenario.type === 'vertical-connected') {
+    const blockB_X = CANVAS_WIDTH / 2;
+    const blockB_Y = CANVAS_HEIGHT / 2 + 80;
+    if (clickX >= blockB_X - BLOCK_WIDTH / 2 && clickX <= blockB_X + BLOCK_WIDTH / 2 &&
+        clickY >= blockB_Y - BLOCK_HEIGHT && clickY <= blockB_Y) {
+      emit('object-clicked', 'blockB');
+    }
+    return;
+  }
+
+  if (props.scenario.type === 'desk-hanging-connected') {
+    const blockB_X = CANVAS_WIDTH / 2 + 100;
+    const blockB_Y = CANVAS_HEIGHT / 2 + 120;
+    if (clickX >= blockB_X - BLOCK_HEIGHT / 2 && clickX <= blockB_X + BLOCK_HEIGHT / 2 &&
+        clickY >= blockB_Y - BLOCK_WIDTH && clickY <= blockB_Y) {
+      emit('object-clicked', 'blockB');
+    }
+    return;
+  }
+
+  if (props.scenario.type === 'atwood-machine') {
+    const blockB_X = CANVAS_WIDTH / 2 + 40;
+    const blockB_Y = CANVAS_HEIGHT / 2 + 120;
+    if (clickX >= blockB_X - BLOCK_HEIGHT / 2 && clickX <= blockB_X + BLOCK_HEIGHT / 2 &&
+        clickY >= blockB_Y - BLOCK_WIDTH && clickY <= blockB_Y) {
+      emit('object-clicked', 'blockB');
+    }
+    return;
+  }
+
+  if (props.scenario.type === 'incline-connected') {
+    const angleDeg = props.scenario.physicsParams.angle || 30;
+    const angleRad = (angleDeg * Math.PI) / 180;
+    const planeWidth = 500;
+    const centerX = CANVAS_WIDTH / 2;
+    const centerY = CANVAS_HEIGHT / 2 + 80;
+    const planeX1 = centerX - planeWidth / 2;
+    const planeY1 = centerY;
+    const blockDist = planeWidth * 0.5;
+    const blockX = planeX1 + blockDist;
+    const blockY = planeY1 - Math.tan(angleRad) * blockDist;
+
+    const dx = clickX - blockX;
+    const dy = clickY - blockY;
+    const localX = dx * Math.cos(angleRad) - dy * Math.sin(angleRad);
+    const localY = dx * Math.sin(angleRad) + dy * Math.cos(angleRad);
+
+    if (localX >= -BLOCK_WIDTH / 2 && localX <= BLOCK_WIDTH / 2 &&
+        localY >= -BLOCK_HEIGHT && localY <= 0) {
+      emit('object-clicked', 'blockA');
+    }
+    return;
+  }
+
   const angleDeg = props.scenario.physicsParams.angle || 30;
   const angleRad = (angleDeg * Math.PI) / 180;
   
@@ -115,6 +180,23 @@ const draw = () => {
   // 清除画布
   ctx.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
   
+  if (props.scenario.type === 'horizontal-connected') {
+    drawHorizontalConnectedScene(ctx);
+    return;
+  } else if (props.scenario.type === 'vertical-connected') {
+    drawVerticalConnectedScene(ctx);
+    return;
+  } else if (props.scenario.type === 'desk-hanging-connected') {
+    drawDeskHangingScene(ctx);
+    return;
+  } else if (props.scenario.type === 'atwood-machine') {
+    drawAtwoodMachineScene(ctx);
+    return;
+  } else if (props.scenario.type === 'incline-connected') {
+    drawInclineConnectedScene(ctx);
+    return;
+  }
+
   // 获取参数
   const angleDeg = props.scenario.physicsParams.angle || 30;
   const angleRad = (angleDeg * Math.PI) / 180;
@@ -210,6 +292,497 @@ const draw = () => {
 };
 
 /**
+ * 绘制水平面上两物体由轻绳连接的场景
+ */
+const drawHorizontalConnectedScene = (ctx) => {
+  const centerY = CANVAS_HEIGHT / 2 + 50;
+  
+  // 1. 绘制水平面
+  ctx.beginPath();
+  ctx.moveTo(0, centerY);
+  ctx.lineTo(CANVAS_WIDTH, centerY);
+  ctx.strokeStyle = '#94a3b8';
+  ctx.lineWidth = 2;
+  ctx.stroke();
+  
+  // 阴影表示地面
+  ctx.fillStyle = 'rgba(226, 232, 240, 0.5)';
+  ctx.fillRect(0, centerY, CANVAS_WIDTH, 50);
+
+  // 位置计算
+  const blockA_X = CANVAS_WIDTH / 2 - 80;
+  const blockB_X = CANVAS_WIDTH / 2 + 80;
+  
+  // 2. 绘制物块A (不受力分析目标，但作为场景的一部分)
+  ctx.fillStyle = '#94a3b8'; // 灰色表示非当前分析对象
+  ctx.fillRect(blockA_X - BLOCK_WIDTH / 2, centerY - BLOCK_HEIGHT, BLOCK_WIDTH, BLOCK_HEIGHT);
+  ctx.strokeStyle = '#64748b';
+  ctx.lineWidth = 2;
+  ctx.strokeRect(blockA_X - BLOCK_WIDTH / 2, centerY - BLOCK_HEIGHT, BLOCK_WIDTH, BLOCK_HEIGHT);
+  ctx.fillStyle = 'white';
+  ctx.font = 'bold 20px "Inter", sans-serif';
+  ctx.textAlign = 'center';
+  ctx.fillText('A', blockA_X, centerY - BLOCK_HEIGHT / 2 + 7);
+
+  // 3. 绘制轻绳
+  ctx.beginPath();
+  ctx.moveTo(blockA_X + BLOCK_WIDTH / 2, centerY - BLOCK_HEIGHT / 2);
+  ctx.lineTo(blockB_X - BLOCK_WIDTH / 2, centerY - BLOCK_HEIGHT / 2);
+  ctx.strokeStyle = '#cbd5e1'; // 浅灰色绳子
+  ctx.lineWidth = 4;
+  ctx.stroke();
+  // 绳子上的点缀
+  ctx.setLineDash([5, 5]);
+  ctx.strokeStyle = '#94a3b8';
+  ctx.stroke();
+  ctx.setLineDash([]);
+
+  // 4. 绘制物块B (当前分析对象)
+  ctx.fillStyle = '#6366f1';
+  ctx.fillRect(blockB_X - BLOCK_WIDTH / 2, centerY - BLOCK_HEIGHT, BLOCK_WIDTH, BLOCK_HEIGHT);
+  ctx.strokeStyle = '#4338ca';
+  ctx.lineWidth = 2;
+  ctx.strokeRect(blockB_X - BLOCK_WIDTH / 2, centerY - BLOCK_HEIGHT, BLOCK_WIDTH, BLOCK_HEIGHT);
+  ctx.fillStyle = 'white';
+  ctx.fillText('B', blockB_X, centerY - BLOCK_HEIGHT / 2 + 7);
+
+  // 5. 绘制受力箭头
+  const originX = blockB_X;
+  const originY = centerY - BLOCK_HEIGHT / 2;
+
+  props.scenario.correctForces.forEach(force => {
+    if (props.confirmedForces.includes(force.id) || force.given) {
+      drawForceArrow(ctx, originX, originY, force, 0);
+    }
+  });
+
+  // 6. 绘制运动状态
+  if (props.scenario.motion) {
+    ctx.save();
+    ctx.translate(blockB_X, centerY);
+    const color = '#0ea5e9';
+    ctx.beginPath();
+    ctx.moveTo(0, -BLOCK_HEIGHT - 20);
+    ctx.lineTo(60, -BLOCK_HEIGHT - 20);
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 3;
+    ctx.stroke();
+    // 箭头头部
+    ctx.beginPath();
+    ctx.moveTo(60, -BLOCK_HEIGHT - 20);
+    ctx.lineTo(50, -BLOCK_HEIGHT - 25);
+    ctx.lineTo(50, -BLOCK_HEIGHT - 15);
+    ctx.fillStyle = color;
+    ctx.fill();
+    ctx.font = 'bold italic 18px serif';
+    ctx.fillText(props.scenario.motion.label || 'a', 30, -BLOCK_HEIGHT - 30);
+    ctx.restore();
+  }
+};
+
+/**
+ * 绘制竖直方向两物体连接场景
+ */
+const drawVerticalConnectedScene = (ctx) => {
+  const blockA_Y = CANVAS_HEIGHT / 2 - 20;
+  const blockB_Y = CANVAS_HEIGHT / 2 + 80;
+  const centerX = CANVAS_WIDTH / 2;
+
+  // 上方绳子
+  ctx.beginPath();
+  ctx.moveTo(centerX, 50);
+  ctx.lineTo(centerX, blockA_Y - BLOCK_HEIGHT);
+  ctx.strokeStyle = '#cbd5e1';
+  ctx.lineWidth = 4;
+  ctx.stroke();
+  
+  // 物块A
+  ctx.fillStyle = '#94a3b8';
+  ctx.fillRect(centerX - BLOCK_WIDTH / 2, blockA_Y - BLOCK_HEIGHT, BLOCK_WIDTH, BLOCK_HEIGHT);
+  ctx.strokeStyle = '#64748b';
+  ctx.lineWidth = 2;
+  ctx.strokeRect(centerX - BLOCK_WIDTH / 2, blockA_Y - BLOCK_HEIGHT, BLOCK_WIDTH, BLOCK_HEIGHT);
+  ctx.fillStyle = 'white';
+  ctx.font = 'bold 20px "Inter", sans-serif';
+  ctx.textAlign = 'center';
+  ctx.fillText('A', centerX, blockA_Y - BLOCK_HEIGHT / 2 + 7);
+
+  // 中间绳子
+  ctx.beginPath();
+  ctx.moveTo(centerX, blockA_Y);
+  ctx.lineTo(centerX, blockB_Y - BLOCK_HEIGHT);
+  ctx.strokeStyle = '#cbd5e1';
+  ctx.lineWidth = 4;
+  ctx.stroke();
+
+  // 物块B (目标对象)
+  ctx.fillStyle = '#6366f1';
+  ctx.fillRect(centerX - BLOCK_WIDTH / 2, blockB_Y - BLOCK_HEIGHT, BLOCK_WIDTH, BLOCK_HEIGHT);
+  ctx.strokeStyle = '#4338ca';
+  ctx.lineWidth = 2;
+  ctx.strokeRect(centerX - BLOCK_WIDTH / 2, blockB_Y - BLOCK_HEIGHT, BLOCK_WIDTH, BLOCK_HEIGHT);
+  ctx.fillStyle = 'white';
+  ctx.fillText('B', centerX, blockB_Y - BLOCK_HEIGHT / 2 + 7);
+
+  // 绘制受力箭头
+  props.scenario.correctForces.forEach(force => {
+    if (props.confirmedForces.includes(force.id) || force.given) {
+      drawForceArrow(ctx, centerX, blockB_Y - BLOCK_HEIGHT / 2, force, 0);
+    }
+  });
+
+  // 运动状态
+  if (props.scenario.motion) {
+    ctx.save();
+    ctx.translate(centerX, blockB_Y);
+    const color = '#f59e0b';
+    ctx.beginPath();
+    ctx.moveTo(BLOCK_WIDTH/2 + 20, -BLOCK_HEIGHT/2 + 30);
+    ctx.lineTo(BLOCK_WIDTH/2 + 20, -BLOCK_HEIGHT/2 - 30);
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 3;
+    ctx.stroke();
+    // 箭头头部
+    ctx.beginPath();
+    ctx.moveTo(BLOCK_WIDTH/2 + 20, -BLOCK_HEIGHT/2 - 30);
+    ctx.lineTo(BLOCK_WIDTH/2 + 15, -BLOCK_HEIGHT/2 - 20);
+    ctx.lineTo(BLOCK_WIDTH/2 + 25, -BLOCK_HEIGHT/2 - 20);
+    ctx.fillStyle = color;
+    ctx.fill();
+    ctx.font = 'bold italic 18px serif';
+    ctx.fillText(props.scenario.motion.label || 'a', BLOCK_WIDTH/2 + 35, -BLOCK_HEIGHT/2);
+    ctx.restore();
+  }
+};
+
+/**
+ * 绘制桌面与悬挂连接场景
+ */
+const drawDeskHangingScene = (ctx) => {
+  const deskY = CANVAS_HEIGHT / 2 + 20;
+  const deskRightX = CANVAS_WIDTH / 2 + 80;
+  const blockA_X = CANVAS_WIDTH / 2 - 50;
+  const blockB_X = deskRightX + 20;
+  const blockB_Y = deskY + 100;
+  
+  // 桌子
+  ctx.fillStyle = '#e2e8f0';
+  ctx.fillRect(0, deskY, deskRightX, CANVAS_HEIGHT - deskY);
+  ctx.strokeStyle = '#cbd5e1';
+  ctx.lineWidth = 4;
+  ctx.beginPath();
+  ctx.moveTo(0, deskY);
+  ctx.lineTo(deskRightX, deskY);
+  ctx.stroke();
+
+  // 滑轮 (固定在桌角)
+  const pulleyRadius = 20;
+  const pulleyX = deskRightX;
+  // 调整高度，使绳子从物块中心水平引出时正好切于滑轮顶端
+  const ropeY = deskY - BLOCK_HEIGHT / 2;
+  const pulleyY = ropeY + pulleyRadius;
+  
+  // 绘制滑轮架
+  ctx.beginPath();
+  ctx.moveTo(deskRightX - 5, deskY);
+  ctx.lineTo(deskRightX, pulleyY);
+  ctx.strokeStyle = '#94a3b8';
+  ctx.lineWidth = 4;
+  ctx.stroke();
+
+  ctx.beginPath();
+  ctx.arc(pulleyX, pulleyY, pulleyRadius, 0, Math.PI * 2);
+  ctx.fillStyle = '#f8fafc';
+  ctx.fill();
+  ctx.strokeStyle = '#94a3b8';
+  ctx.lineWidth = 3;
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.arc(pulleyX, pulleyY, 4, 0, Math.PI * 2);
+  ctx.fillStyle = '#64748b';
+  ctx.fill();
+
+  // 绳子
+  ctx.beginPath();
+  // 从 A 的右侧中心开始
+  ctx.moveTo(blockA_X + BLOCK_WIDTH / 2, ropeY);
+  // 水平到滑轮切点
+  ctx.lineTo(pulleyX, ropeY);
+  // 绕过滑轮 (从 -PI/2 到 0)
+  ctx.arc(pulleyX, pulleyY, pulleyRadius, -Math.PI/2, 0, false);
+  // 向下到 B
+  ctx.lineTo(pulleyX + pulleyRadius, blockB_Y - BLOCK_WIDTH);
+  ctx.strokeStyle = '#cbd5e1';
+  ctx.lineWidth = 4;
+  ctx.stroke();
+
+  // 物块A
+  ctx.fillStyle = '#94a3b8';
+  ctx.fillRect(blockA_X - BLOCK_WIDTH / 2, deskY - BLOCK_HEIGHT, BLOCK_WIDTH, BLOCK_HEIGHT);
+  ctx.strokeRect(blockA_X - BLOCK_WIDTH / 2, deskY - BLOCK_HEIGHT, BLOCK_WIDTH, BLOCK_HEIGHT);
+  ctx.fillStyle = 'white';
+  ctx.font = 'bold 20px "Inter", sans-serif';
+  ctx.textAlign = 'center';
+  ctx.fillText('A', blockA_X, deskY - BLOCK_HEIGHT / 2 + 7);
+
+  // 物块B (悬挂的是竖直长方形)
+  ctx.fillStyle = '#6366f1';
+  ctx.fillRect(blockB_X - BLOCK_HEIGHT / 2, blockB_Y - BLOCK_WIDTH, BLOCK_HEIGHT, BLOCK_WIDTH);
+  ctx.strokeStyle = '#4338ca';
+  ctx.strokeRect(blockB_X - BLOCK_HEIGHT / 2, blockB_Y - BLOCK_WIDTH, BLOCK_HEIGHT, BLOCK_WIDTH);
+  ctx.fillStyle = 'white';
+  ctx.fillText('B', blockB_X, blockB_Y - BLOCK_WIDTH / 2 + 7);
+
+  // 受力箭头
+  props.scenario.correctForces.forEach(force => {
+    if (props.confirmedForces.includes(force.id) || force.given) {
+      drawForceArrow(ctx, blockB_X, blockB_Y - BLOCK_WIDTH / 2, force, 0);
+    }
+  });
+
+  // 运动状态
+  if (props.scenario.motion) {
+    ctx.save();
+    ctx.translate(blockB_X, blockB_Y);
+    const color = '#0ea5e9';
+    ctx.beginPath();
+    ctx.moveTo(BLOCK_HEIGHT/2 + 20, -BLOCK_WIDTH/2 - 30);
+    ctx.lineTo(BLOCK_HEIGHT/2 + 20, -BLOCK_WIDTH/2 + 30);
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 3;
+    ctx.stroke();
+    // 箭头头部
+    ctx.beginPath();
+    ctx.moveTo(BLOCK_HEIGHT/2 + 20, -BLOCK_WIDTH/2 + 30);
+    ctx.lineTo(BLOCK_HEIGHT/2 + 15, -BLOCK_WIDTH/2 + 20);
+    ctx.lineTo(BLOCK_HEIGHT/2 + 25, -BLOCK_WIDTH/2 + 20);
+    ctx.fillStyle = color;
+    ctx.fill();
+    ctx.font = 'bold italic 18px serif';
+    ctx.fillText(props.scenario.motion.label || 'a', BLOCK_HEIGHT/2 + 35, -BLOCK_WIDTH/2);
+    ctx.restore();
+  }
+};
+
+/**
+ * 绘制阿特伍德机场景
+ */
+const drawAtwoodMachineScene = (ctx) => {
+  const pulleyX = CANVAS_WIDTH / 2;
+  const pulleyY = CANVAS_HEIGHT / 2 - 80;
+  const pulleyRadius = 40;
+  
+  const blockA_X = pulleyX - pulleyRadius;
+  const blockB_X = pulleyX + pulleyRadius;
+  const blockA_Y = CANVAS_HEIGHT / 2 + 20; // 较轻，较高
+  const blockB_Y = CANVAS_HEIGHT / 2 + 120; // 较重，较低
+
+  // 天花板固定架
+  ctx.beginPath();
+  ctx.moveTo(pulleyX, 0);
+  ctx.lineTo(pulleyX, pulleyY);
+  ctx.strokeStyle = '#94a3b8';
+  ctx.lineWidth = 6;
+  ctx.stroke();
+
+  // 滑轮
+  ctx.beginPath();
+  ctx.arc(pulleyX, pulleyY, pulleyRadius, 0, Math.PI * 2);
+  ctx.fillStyle = '#f8fafc';
+  ctx.fill();
+  ctx.strokeStyle = '#94a3b8';
+  ctx.lineWidth = 4;
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.arc(pulleyX, pulleyY, 6, 0, Math.PI * 2);
+  ctx.fillStyle = '#64748b';
+  ctx.fill();
+
+  // 绳子
+  ctx.beginPath();
+  ctx.moveTo(blockA_X, blockA_Y - BLOCK_WIDTH);
+  ctx.lineTo(blockA_X, pulleyY);
+  ctx.arc(pulleyX, pulleyY, pulleyRadius, Math.PI, 0, false);
+  ctx.lineTo(blockB_X, blockB_Y - BLOCK_WIDTH);
+  ctx.strokeStyle = '#cbd5e1';
+  ctx.lineWidth = 4;
+  ctx.stroke();
+
+  // 物块A
+  ctx.fillStyle = '#94a3b8';
+  ctx.fillRect(blockA_X - BLOCK_HEIGHT / 2, blockA_Y - BLOCK_WIDTH, BLOCK_HEIGHT, BLOCK_WIDTH);
+  ctx.strokeStyle = '#64748b';
+  ctx.lineWidth = 2;
+  ctx.strokeRect(blockA_X - BLOCK_HEIGHT / 2, blockA_Y - BLOCK_WIDTH, BLOCK_HEIGHT, BLOCK_WIDTH);
+  ctx.fillStyle = 'white';
+  ctx.font = 'bold 20px "Inter", sans-serif';
+  ctx.textAlign = 'center';
+  ctx.fillText('A', blockA_X, blockA_Y - BLOCK_WIDTH / 2 + 7);
+
+  // 物块B (目标对象)
+  ctx.fillStyle = '#6366f1';
+  ctx.fillRect(blockB_X - BLOCK_HEIGHT / 2, blockB_Y - BLOCK_WIDTH, BLOCK_HEIGHT, BLOCK_WIDTH);
+  ctx.strokeStyle = '#4338ca';
+  ctx.strokeRect(blockB_X - BLOCK_HEIGHT / 2, blockB_Y - BLOCK_WIDTH, BLOCK_HEIGHT, BLOCK_WIDTH);
+  ctx.fillStyle = 'white';
+  ctx.fillText('B', blockB_X, blockB_Y - BLOCK_WIDTH / 2 + 7);
+
+  // 受力箭头
+  props.scenario.correctForces.forEach(force => {
+    if (props.confirmedForces.includes(force.id) || force.given) {
+      drawForceArrow(ctx, blockB_X, blockB_Y - BLOCK_WIDTH / 2, force, 0);
+    }
+  });
+
+  // 运动状态
+  if (props.scenario.motion) {
+    ctx.save();
+    ctx.translate(blockB_X, blockB_Y);
+    const color = '#0ea5e9';
+    ctx.beginPath();
+    ctx.moveTo(BLOCK_HEIGHT/2 + 20, -BLOCK_WIDTH/2 - 30);
+    ctx.lineTo(BLOCK_HEIGHT/2 + 20, -BLOCK_WIDTH/2 + 30);
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 3;
+    ctx.stroke();
+    // 箭头头部
+    ctx.beginPath();
+    ctx.moveTo(BLOCK_HEIGHT/2 + 20, -BLOCK_WIDTH/2 + 30);
+    ctx.lineTo(BLOCK_HEIGHT/2 + 15, -BLOCK_WIDTH/2 + 20);
+    ctx.lineTo(BLOCK_HEIGHT/2 + 25, -BLOCK_WIDTH/2 + 20);
+    ctx.fillStyle = color;
+    ctx.fill();
+    ctx.font = 'bold italic 18px serif';
+    ctx.fillText(props.scenario.motion.label || 'a', BLOCK_HEIGHT/2 + 35, -BLOCK_WIDTH/2);
+    ctx.restore();
+  }
+};
+
+/**
+ * 绘制斜面与悬挂连接场景
+ */
+const drawInclineConnectedScene = (ctx) => {
+  // 复用斜面绘制逻辑
+  const angleDeg = props.scenario.physicsParams.angle || 30;
+  const angleRad = (angleDeg * Math.PI) / 180;
+  const planeWidth = 500;
+  const centerX = CANVAS_WIDTH / 2;
+  const centerY = CANVAS_HEIGHT / 2 + 80;
+  const planeX1 = centerX - planeWidth / 2;
+  const planeX2 = centerX + planeWidth / 2;
+  const planeY1 = centerY;
+  const planeY2 = centerY - Math.tan(angleRad) * planeWidth;
+
+  // 绘制斜面
+  ctx.beginPath();
+  ctx.moveTo(planeX1, planeY1);
+  ctx.lineTo(planeX2, planeY1);
+  ctx.lineTo(planeX2, planeY2);
+  ctx.closePath();
+  const gradient = ctx.createLinearGradient(planeX1, planeY1, planeX2, planeY2);
+  gradient.addColorStop(0, '#f1f5f9');
+  gradient.addColorStop(1, '#e2e8f0');
+  ctx.fillStyle = gradient;
+  ctx.fill();
+  ctx.strokeStyle = '#94a3b8';
+  ctx.lineWidth = 2;
+  ctx.stroke();
+
+  // 滑轮 (位于斜面顶端，稍微偏移以对齐绳索)
+  const pulleyRadius = 18;
+  const pulleyX = planeX2 + pulleyRadius * Math.sin(angleRad);
+  const pulleyY = planeY2 - pulleyRadius * Math.cos(angleRad);
+  
+  // 绘制滑轮架 (连接斜面顶端和滑轮圆心)
+  ctx.beginPath();
+  ctx.moveTo(planeX2, planeY2);
+  ctx.lineTo(pulleyX, pulleyY);
+  ctx.strokeStyle = '#94a3b8';
+  ctx.lineWidth = 4;
+  ctx.stroke();
+
+  ctx.beginPath();
+  ctx.arc(pulleyX, pulleyY, pulleyRadius, 0, Math.PI * 2);
+  ctx.fillStyle = '#f8fafc';
+  ctx.fill();
+  ctx.strokeStyle = '#94a3b8';
+  ctx.lineWidth = 3;
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.arc(pulleyX, pulleyY, 4, 0, Math.PI * 2);
+  ctx.fillStyle = '#64748b';
+  ctx.fill();
+
+  // 物块A 在斜面上
+  const blockDist = planeWidth * 0.4;
+  const blockX = planeX1 + blockDist;
+  const blockY = planeY1 - Math.tan(angleRad) * blockDist;
+
+  // 绳子
+  const blockB_X = pulleyX + pulleyRadius;
+  const blockB_Y = pulleyY + 140; // 稍微长一点
+  
+  // A 的中心 (绳子引出点)
+  const ropeStartX = blockX - (BLOCK_HEIGHT / 2) * Math.sin(angleRad);
+  const ropeStartY = blockY - (BLOCK_HEIGHT / 2) * Math.cos(angleRad);
+
+  ctx.beginPath();
+  ctx.moveTo(ropeStartX, ropeStartY);
+  // 计算切点：滑轮圆心加上垂直于斜面的半径向量
+  const tangentX = pulleyX - pulleyRadius * Math.sin(angleRad);
+  const tangentY = pulleyY - pulleyRadius * Math.cos(angleRad);
+  ctx.lineTo(tangentX, tangentY);
+  // 绕过滑轮：从 (angleRad - PI/2) 到 0
+  ctx.arc(pulleyX, pulleyY, pulleyRadius, -angleRad - Math.PI/2, 0, false);
+  ctx.lineTo(blockB_X, blockB_Y - BLOCK_WIDTH);
+  ctx.strokeStyle = '#cbd5e1';
+  ctx.lineWidth = 4;
+  ctx.stroke();
+
+  // 绘制物块A (目标对象)
+  ctx.save();
+  ctx.translate(blockX, blockY);
+  ctx.rotate(-angleRad);
+  ctx.shadowColor = 'rgba(0, 0, 0, 0.1)';
+  ctx.shadowBlur = 10;
+  ctx.fillStyle = '#6366f1';
+  ctx.fillRect(-BLOCK_WIDTH / 2, -BLOCK_HEIGHT, BLOCK_WIDTH, BLOCK_HEIGHT);
+  ctx.strokeStyle = '#4338ca';
+  ctx.lineWidth = 2;
+  ctx.strokeRect(-BLOCK_WIDTH / 2, -BLOCK_HEIGHT, BLOCK_WIDTH, BLOCK_HEIGHT);
+  ctx.fillStyle = 'white';
+  ctx.font = 'bold 20px "Inter", sans-serif';
+  ctx.textAlign = 'center';
+  ctx.fillText('A', 0, -BLOCK_HEIGHT / 2 + 7);
+  ctx.restore();
+
+  // 绘制物块B (悬挂)
+  ctx.fillStyle = '#94a3b8';
+  ctx.fillRect(blockB_X - BLOCK_HEIGHT / 2, blockB_Y - BLOCK_WIDTH, BLOCK_HEIGHT, BLOCK_WIDTH);
+  ctx.strokeStyle = '#64748b';
+  ctx.lineWidth = 2;
+  ctx.strokeRect(blockB_X - BLOCK_HEIGHT / 2, blockB_Y - BLOCK_WIDTH, BLOCK_HEIGHT, BLOCK_WIDTH);
+  ctx.fillStyle = 'white';
+  ctx.fillText('B', blockB_X, blockB_Y - BLOCK_WIDTH / 2 + 7);
+
+  // 受力箭头
+  const originX = blockX - (BLOCK_HEIGHT / 2) * Math.sin(angleRad);
+  const originY = blockY - (BLOCK_HEIGHT / 2) * Math.cos(angleRad);
+
+  props.scenario.correctForces.forEach(force => {
+    if (props.confirmedForces.includes(force.id) || force.given) {
+      drawForceArrow(ctx, originX, originY, force, angleRad);
+    }
+  });
+
+  // 运动状态
+  if (props.scenario.motion) {
+    drawMotionIndicator(ctx, blockX, blockY, props.scenario.motion, angleRad);
+  }
+};
+
+
+/**
  * 绘制运动状态指示器 (速度矢量等)
  */
 const drawMotionIndicator = (ctx, x, y, motion, angleRad) => {
@@ -264,11 +837,11 @@ const drawForceArrow = (ctx, x, y, force, angleRad) => {
   let dx = 0, dy = 0;
   let color = '#ef4444'; // 默认红色
 
-  if (force.id === 'gravity' || force.id === 'incline-gravity') {
+  if (force.id === 'gravity' || force.id === 'incline-gravity' || force.id === 'gravity-B') {
     dx = 0;
     dy = ARROW_LENGTH;
     color = '#ef4444';
-  } else if (force.id === 'normal-force') {
+  } else if (force.id === 'normal-force' || force.id === 'normal-force-B') {
     // 垂直斜面向上
     dx = -Math.sin(angleRad) * ARROW_LENGTH;
     dy = -Math.cos(angleRad) * ARROW_LENGTH;
@@ -289,11 +862,20 @@ const drawForceArrow = (ctx, x, y, force, angleRad) => {
     dx = Math.cos(angleRad) * ARROW_LENGTH * 1.2;
     dy = -Math.sin(angleRad) * ARROW_LENGTH * 1.2;
     color = '#a855f7';
-  } else if (force.id === 'horizontal-force') {
+  } else if (force.id === 'horizontal-force' || force.id === 'external-force-F') {
     // 水平向右
     dx = ARROW_LENGTH * 1.1;
     dy = 0;
     color = '#f97316'; // 橙色，区分于其他力
+  } else if (force.id === 'tension-left' || force.id === 'kinetic-friction-B') {
+    // 水平向左
+    dx = -ARROW_LENGTH * 1.1;
+    dy = 0;
+    color = force.id === 'kinetic-friction-B' ? '#22c55e' : '#8b5cf6';
+  } else if (force.id === 'tension-up') {
+    dx = 0;
+    dy = -ARROW_LENGTH;
+    color = '#8b5cf6'; // 紫色拉力
   } else if (force.id === 'ground-normal') {
     dx = 0;
     dy = -ARROW_LENGTH;

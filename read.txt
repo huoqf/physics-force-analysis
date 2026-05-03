@@ -1,1 +1,14 @@
 $env:PATH="D:\node-v24;"+$env:PATH; npm run dev
+
+
+
+
+在 Antigravity 中，你可以这样使用
+
+/add-scenario 新增一个“水平面上受水平拉力的物块”场景，研究对象是物块，要求包含摩擦力判断。
+
+/generate-tests 为 src/components/StepGuide.vue 生成 Vitest 单元测试，重点测试受力确认、错误反馈和最终提交答案。
+
+/add-docs 为 src/physics/engine.js 补充物理公式注释和单位说明，不要修改业务逻辑。
+
+/validate-physics 检查 incline-block-static 场景的 correctForces、commonMistakes 和 steps 是否符合高中物理受力分析原则。
